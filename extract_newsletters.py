@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
-Gmail Newsletter Extractor and Sender
+Gmail Newsletter Extractor and Summarizer
 
 This script connects to Gmail via the Gmail API and extracts newsletters
 from specific sources (pucknews.com, economist.com, punchbowlnews.com, thetimes.co.uk)
-from the last 24 hours. It saves them to separate text files and sends a
-consolidated email with all newsletter content to the specified recipient.
+from the last 24 hours. It saves them to separate text files and uses AI (Claude)
+to generate a concise, well-structured HTML summary organized by US Politics and UK News,
+which is then sent via email.
+
+Requirements:
+- ANTHROPIC_API_KEY environment variable must be set
 """
 
 import os
@@ -14,11 +18,13 @@ import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import anthropic
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = [
@@ -165,22 +171,26 @@ def extract_sender_domain(from_header):
     return "unknown"
 
 
-def send_email(service, to_email, subject, body):
+def send_email(service, to_email, subject, body_html):
     """
-    Send an email using the Gmail API.
+    Send an HTML email using the Gmail API.
 
     Args:
         service: Gmail API service instance
         to_email (str): Recipient email address
         subject (str): Email subject
-        body (str): Email body text
+        body_html (str): Email body in HTML format
 
     Returns:
         dict: Sent message details
     """
-    message = MIMEText(body)
+    message = MIMEMultipart('alternative')
     message['to'] = to_email
     message['subject'] = subject
+
+    # Create HTML part
+    html_part = MIMEText(body_html, 'html')
+    message.attach(html_part)
 
     # Encode the message
     raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
@@ -192,6 +202,148 @@ def send_email(service, to_email, subject, body):
     ).execute()
 
     return sent_message
+
+
+def generate_newsletter_summary(newsletters_data):
+    """
+    Generate a structured HTML summary of newsletters using Claude AI.
+
+    Args:
+        newsletters_data (list): List of dictionaries containing newsletter information
+
+    Returns:
+        str: HTML formatted summary
+    """
+    # Get API key from environment
+    api_key = os.environ.get('ANTHROPIC_API_KEY')
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY environment variable not set")
+
+    client = anthropic.Anthropic(api_key=api_key)
+
+    # Prepare newsletter content for summarization
+    newsletters_text = ""
+    sources = set()
+
+    for newsletter in newsletters_data:
+        sources.add(newsletter['domain'])
+        newsletters_text += f"\n\n--- Newsletter from {newsletter['domain']} ---\n"
+        newsletters_text += f"Subject: {newsletter['subject']}\n"
+        newsletters_text += f"Date: {newsletter['received_date']}\n\n"
+        newsletters_text += newsletter['body'][:5000]  # Limit length per newsletter
+
+    # Create prompt for Claude
+    prompt = f"""Please create a concise, 10-minute readable summary of these newsletters.
+
+Structure your response as follows:
+
+1. US POLITICS section - Draw heavily from Puck News (pucknews.com) and Punchbowl News (punchbowlnews.com). Cover key political developments, insider perspectives, and legislative updates.
+
+2. UK NEWS section - Anchor this in The Times (thetimes.co.uk) coverage, but also draw on insights from other sources as relevant. Cover major UK political, economic, and social developments.
+
+Format the summary to be:
+- Scannable with clear headers and bullet points where appropriate
+- Focused on the most important and actionable information
+- Written in a professional but engaging tone
+- Approximately 10 minutes of reading time
+
+Here are the newsletters:
+
+{newsletters_text}
+
+Please provide ONLY the summary content without any HTML tags or formatting - I will add that separately."""
+
+    # Call Claude API
+    message = client.messages.create(
+        model="claude-3-5-sonnet-20241022",
+        max_tokens=3000,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    summary_content = message.content[0].text
+
+    # Build HTML email
+    sources_list = ", ".join(sorted(sources))
+    today = datetime.now().strftime('%B %d, %Y')
+
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{
+            font-family: Georgia, serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }}
+        .container {{
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        h1 {{
+            color: #1a1a1a;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }}
+        h2 {{
+            color: #0066cc;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }}
+        h3 {{
+            color: #444;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }}
+        .sources {{
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 0.9em;
+            color: #666;
+        }}
+        .date {{
+            color: #888;
+            font-style: italic;
+            margin-bottom: 20px;
+        }}
+        p {{
+            margin-bottom: 15px;
+        }}
+        ul {{
+            margin-bottom: 15px;
+        }}
+        li {{
+            margin-bottom: 8px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Daily Newsletter Summary</h1>
+        <p class="date">{today}</p>
+
+        <div class="sources">
+            <strong>Sources:</strong> {sources_list}
+        </div>
+
+        {summary_content.replace('\n', '<br>\n')}
+    </div>
+</body>
+</html>
+"""
+
+    return html
 
 
 def save_email_to_file(email_data, newsletters_dir):
@@ -256,8 +408,8 @@ def main():
 
         print(f"Found {len(messages)} email(s)\n")
 
-        # List to collect all newsletter content for the email
-        all_newsletters = []
+        # List to collect all newsletter data for summarization
+        newsletters_data = []
 
         # Process each message
         for idx, message in enumerate(messages, 1):
@@ -301,35 +453,35 @@ def main():
             # Save to file (for backup)
             save_email_to_file(email_data, newsletters_dir)
 
-            # Add to collection for emailing
-            newsletter_content = f"From: {from_header}\n"
-            newsletter_content += f"Date: {date_header}\n"
-            newsletter_content += f"Subject: {subject}\n"
-            newsletter_content += f"\n{'='*80}\n\n"
-            newsletter_content += body
-            newsletter_content += f"\n\n{'='*80}\n\n"
-
-            all_newsletters.append(newsletter_content)
+            # Add to collection for summarization
+            newsletters_data.append(email_data)
 
         print(f"\n✓ Successfully extracted {len(messages)} newsletter(s) to '{newsletters_dir}' directory")
 
-        # Send consolidated email with all newsletters
-        if all_newsletters:
-            print("\nSending newsletters via email...")
-            today = datetime.now().strftime('%Y-%m-%d')
-            email_subject = f"Daily Newsletters - {today}"
-            email_body = "\n".join(all_newsletters)
-
+        # Generate and send summarized email
+        if newsletters_data:
+            print("\nGenerating newsletter summary with AI...")
             try:
+                html_summary = generate_newsletter_summary(newsletters_data)
+
+                print("Sending summary email...")
+                today = datetime.now().strftime('%Y-%m-%d')
+                email_subject = f"Daily Newsletters - {today}"
+
                 send_email(
                     service=service,
-                    to_email='mattjochim@gmail.com',
+                    to_email='uk7priceisright@gmail.com',
                     subject=email_subject,
-                    body=email_body
+                    body_html=html_summary
                 )
-                print(f"✓ Successfully sent email to mattjochim@gmail.com")
+                print(f"✓ Successfully sent email to uk7priceisright@gmail.com")
+            except ValueError as ve:
+                print(f"Configuration error: {ve}")
+                print("Please set ANTHROPIC_API_KEY environment variable")
             except HttpError as email_error:
                 print(f"Failed to send email: {email_error}")
+            except Exception as e:
+                print(f"Error generating or sending summary: {e}")
 
     except HttpError as error:
         print(f"An error occurred: {error}")

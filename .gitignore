@@ -2,6 +2,10 @@
 credentials.json
 token.json
 
+# Environment variables and API keys
+.env
+.env.local
+
 # Newsletter output directory
 newsletters/
 
