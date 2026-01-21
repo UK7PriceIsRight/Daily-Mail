@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Gmail Newsletter Extractor
+Gmail Newsletter Extractor and Sender
 
 This script connects to Gmail via the Gmail API and extracts newsletters
 from specific sources (pucknews.com, economist.com, punchbowlnews.com, thetimes.co.uk)
-from the last 24 hours, saving them to separate text files.
+from the last 24 hours. It saves them to separate text files and sends a
+consolidated email with all newsletter content to the specified recipient.
 """
 
 import os
@@ -12,6 +13,7 @@ import base64
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
+from email.mime.text import MIMEText
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -19,7 +21,10 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.send'
+]
 
 # Newsletter sources to search for
 NEWSLETTER_SOURCES = [
@@ -160,6 +165,35 @@ def extract_sender_domain(from_header):
     return "unknown"
 
 
+def send_email(service, to_email, subject, body):
+    """
+    Send an email using the Gmail API.
+
+    Args:
+        service: Gmail API service instance
+        to_email (str): Recipient email address
+        subject (str): Email subject
+        body (str): Email body text
+
+    Returns:
+        dict: Sent message details
+    """
+    message = MIMEText(body)
+    message['to'] = to_email
+    message['subject'] = subject
+
+    # Encode the message
+    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+
+    # Send the message
+    sent_message = service.users().messages().send(
+        userId='me',
+        body={'raw': raw_message}
+    ).execute()
+
+    return sent_message
+
+
 def save_email_to_file(email_data, newsletters_dir):
     """
     Save email to a text file.
@@ -194,7 +228,7 @@ def save_email_to_file(email_data, newsletters_dir):
 
 def main():
     """
-    Main function to extract newsletters from Gmail.
+    Main function to extract newsletters from Gmail and send them via email.
     """
     try:
         # Create newsletters directory
@@ -221,6 +255,9 @@ def main():
             return
 
         print(f"Found {len(messages)} email(s)\n")
+
+        # List to collect all newsletter content for the email
+        all_newsletters = []
 
         # Process each message
         for idx, message in enumerate(messages, 1):
@@ -261,10 +298,38 @@ def main():
                 'body': body
             }
 
-            # Save to file
+            # Save to file (for backup)
             save_email_to_file(email_data, newsletters_dir)
 
+            # Add to collection for emailing
+            newsletter_content = f"From: {from_header}\n"
+            newsletter_content += f"Date: {date_header}\n"
+            newsletter_content += f"Subject: {subject}\n"
+            newsletter_content += f"\n{'='*80}\n\n"
+            newsletter_content += body
+            newsletter_content += f"\n\n{'='*80}\n\n"
+
+            all_newsletters.append(newsletter_content)
+
         print(f"\n✓ Successfully extracted {len(messages)} newsletter(s) to '{newsletters_dir}' directory")
+
+        # Send consolidated email with all newsletters
+        if all_newsletters:
+            print("\nSending newsletters via email...")
+            today = datetime.now().strftime('%Y-%m-%d')
+            email_subject = f"Daily Newsletters - {today}"
+            email_body = "\n".join(all_newsletters)
+
+            try:
+                send_email(
+                    service=service,
+                    to_email='mattjochim@gmail.com',
+                    subject=email_subject,
+                    body=email_body
+                )
+                print(f"✓ Successfully sent email to mattjochim@gmail.com")
+            except HttpError as email_error:
+                print(f"Failed to send email: {email_error}")
 
     except HttpError as error:
         print(f"An error occurred: {error}")
