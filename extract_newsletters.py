@@ -259,11 +259,13 @@ def generate_newsletter_summary(newsletters_data):
         newsletters_text += f"Subject: {newsletter['subject']}\n\n"
         # Use BeautifulSoup to extract plain text from HTML
         plain_text = strip_html(newsletter['body'])
-        # Increased limit for more comprehensive coverage
-        newsletters_text += plain_text[:10000] + "\n"
+        # Include more content for better cross-source synthesis (20k characters per source)
+        newsletters_text += plain_text[:20000] + "\n"
 
     # Create improved prompt for Claude
-    prompt = f"""You are summarizing daily newsletters from premium news sources. Create a COMPREHENSIVE, well-organized summary that can be read in about 10 minutes. Prioritize depth and detail over brevity - include context, analysis, and key details that help the reader understand the full story.
+    prompt = f"""You are creating a COMPREHENSIVE daily news briefing by SYNTHESIZING content from multiple premium newsletters. Your goal is to identify the major stories of the day and combine insights from different sources into a cohesive narrative for each topic.
+
+APPROACH: Don't summarize each newsletter separately. Instead, identify the KEY STORIES covered across sources and synthesize them by topic. When multiple sources cover the same story, combine their perspectives, details, and analysis into a richer understanding.
 
 REQUIRED SECTIONS:
 - US POLITICS (always include, even if minimal coverage)
@@ -299,29 +301,30 @@ WORLD NEWS includes:
 - Global crises and humanitarian issues
 - International organizations (UN, NATO, EU, etc.)
 
-GUIDELINES FOR COMPREHENSIVE COVERAGE:
+SYNTHESIS GUIDELINES:
 - Start each section with an ALL CAPS header (e.g., "US POLITICS")
-- Within each section, write 3-6 substantive paragraphs covering the key stories
-- Include relevant context, background, and why the story matters
-- Include names, numbers, and specific details when relevant
-- Cover multiple stories per section when available
+- Within each section, identify the 2-4 most important STORIES (not sources)
+- For each story, synthesize information from all sources that mention it
+- Write 2-3 substantive paragraphs per major story
+- Include: what happened, who's involved, context/background, why it matters, different perspectives
+- Include names, numbers, quotes, and specific details
+- When sources disagree or emphasize different angles, note this
 - Use plain text - no markdown, no HTML, no bullet points
-- Maintain a professional, informative tone with analysis and insight
+- Maintain a professional, analytical tone
 - CRITICAL: Double-check each story's categorization before placing it
-- If a story spans multiple categories, put it in the MOST relevant one
 - Skip any section (except US POLITICS and UK NEWS) if there isn't enough substantive content
 
-TARGET: Aim for approximately 800-1200 words total (about 10 minutes reading time).
+TARGET: Aim for approximately 1000-1500 words total (about 10 minutes reading time). Prioritize depth and synthesis over brevity.
 
-Here are today's newsletters to summarize:
+Here are today's newsletters to synthesize:
 
 {newsletters_text}"""
 
     # Call Claude API
-    # Using Sonnet for comprehensive, high-quality summaries with better categorization
+    # Using Sonnet for comprehensive cross-source synthesis with better categorization
     message = client.messages.create(
         model="claude-3-5-sonnet-20241022",
-        max_tokens=8000,
+        max_tokens=10000,  # Increased for more comprehensive synthesis
         messages=[
             {"role": "user", "content": prompt}
         ]
