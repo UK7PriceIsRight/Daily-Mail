@@ -321,9 +321,9 @@ Here are today's newsletters to synthesize:
 {newsletters_text}"""
 
     # Call Claude API
-    # Using Sonnet for comprehensive cross-source synthesis with better categorization
+    # Using Haiku (only model available with current API key)
     message = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
+        model="claude-3-haiku-20240307",
         max_tokens=10000,  # Increased for more comprehensive synthesis
         messages=[
             {"role": "user", "content": prompt}
