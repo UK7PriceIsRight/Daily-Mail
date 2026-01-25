@@ -24,6 +24,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from html.parser import HTMLParser
 import anthropic
 
 # If modifying these scopes, delete the file token.json.
@@ -171,6 +172,37 @@ def extract_sender_domain(from_header):
     return "unknown"
 
 
+class HTMLStripper(HTMLParser):
+    """Simple HTML tag stripper."""
+    def __init__(self):
+        super().__init__()
+        self.reset()
+        self.strict = False
+        self.convert_charrefs = True
+        self.text = []
+
+    def handle_data(self, d):
+        self.text.append(d)
+
+    def get_data(self):
+        return ''.join(self.text)
+
+
+def strip_html(html_content):
+    """
+    Strip HTML tags from content, leaving only text.
+
+    Args:
+        html_content (str): HTML content
+
+    Returns:
+        str: Plain text content
+    """
+    stripper = HTMLStripper()
+    stripper.feed(html_content)
+    return stripper.get_data()
+
+
 def send_email(service, to_email, subject, body_html, body_text=""):
     """
     Send an HTML email using the Gmail API.
@@ -240,28 +272,35 @@ def generate_newsletter_summary(newsletters_data):
         newsletters_text += f"\n\n--- Newsletter from {newsletter['domain']} ---\n"
         newsletters_text += f"Subject: {newsletter['subject']}\n"
         newsletters_text += f"Date: {newsletter['received_date']}\n\n"
-        newsletters_text += newsletter['body'][:5000]  # Limit length per newsletter
+        # Strip HTML tags and limit length
+        plain_text = strip_html(newsletter['body'])
+        newsletters_text += plain_text[:5000]
 
     # Create prompt for Claude
     prompt = f"""Please create a concise, 10-minute readable summary of these newsletters.
 
 Structure your response as follows:
 
-1. US POLITICS section - Draw heavily from Puck News (pucknews.com) and Punchbowl News (punchbowlnews.com). Cover key political developments, insider perspectives, and legislative updates.
+**US POLITICS**
+Draw heavily from Puck News (pucknews.com) and Punchbowl News (punchbowlnews.com). Cover key political developments, insider perspectives, and legislative updates.
 
-2. UK NEWS section - Anchor this in The Times (thetimes.co.uk) coverage, but also draw on insights from other sources as relevant. Cover major UK political, economic, and social developments.
+**UK NEWS**
+Anchor this in The Times (thetimes.co.uk) coverage, but also draw on insights from other sources as relevant. Cover major UK political, economic, and social developments.
 
-Format the summary to be:
-- Scannable with clear headers and bullet points where appropriate
-- Focused on the most important and actionable information
-- Written in a professional but engaging tone
+Format requirements:
+- Use **bold** for section headers
+- Use simple paragraphs with blank lines between topics
+- Scannable and focused on the most important information
+- Professional but engaging tone
 - Approximately 10 minutes of reading time
+- NO HTML tags, NO markdown formatting beyond **bold** for headers
+- Just plain text with double line breaks between sections
 
 Here are the newsletters:
 
 {newsletters_text}
 
-Please provide ONLY the summary content without any HTML tags or formatting - I will add that separately."""
+Provide ONLY the summary text - I will add HTML formatting separately."""
 
     # Call Claude API
     message = client.messages.create(
@@ -274,104 +313,56 @@ Please provide ONLY the summary content without any HTML tags or formatting - I 
 
     summary_content = message.content[0].text
 
-    # Build HTML email
+    # Convert **bold** to HTML strong tags and paragraphs
+    # Split by double line breaks to get paragraphs
+    paragraphs = summary_content.split('\n\n')
+    formatted_content = ""
+
+    for para in paragraphs:
+        if para.strip():
+            # Convert **text** to <strong>text</strong>
+            para = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', para)
+            # Convert single line breaks to <br>
+            para = para.replace('\n', '<br>')
+            formatted_content += f"<p>{para}</p>\n"
+
+    # Build HTML email with inline styles for better email client compatibility
     sources_list = ", ".join(sorted(sources))
     today = datetime.now().strftime('%B %d, %Y')
 
-    html = f"""
-<!DOCTYPE html>
+    html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <style>
-        body {{
-            font-family: Georgia, serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 700px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f9f9f9;
-        }}
-        .container {{
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }}
-        h1 {{
-            color: #1a1a1a;
-            border-bottom: 3px solid #0066cc;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }}
-        h2 {{
-            color: #0066cc;
-            margin-top: 30px;
-            margin-bottom: 15px;
-        }}
-        h3 {{
-            color: #444;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        }}
-        .sources {{
-            background-color: #f0f0f0;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-            font-size: 0.9em;
-            color: #666;
-        }}
-        .date {{
-            color: #888;
-            font-style: italic;
-            margin-bottom: 20px;
-        }}
-        p {{
-            margin-bottom: 15px;
-        }}
-        ul {{
-            margin-bottom: 15px;
-        }}
-        li {{
-            margin-bottom: 8px;
-        }}
-        .footer {{
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            font-size: 0.85em;
-            color: #666;
-            text-align: center;
-        }}
-        .footer a {{
-            color: #0066cc;
-            text-decoration: none;
-        }}
-        .footer a:hover {{
-            text-decoration: underline;
-        }}
-    </style>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body>
-    <div class="container">
-        <h1>Daily Newsletter Summary</h1>
-        <p class="date">{today}</p>
-
-        <div class="sources">
-            <strong>Sources:</strong> {sources_list}
-        </div>
-
-        {summary_content.replace('\n', '<br>\n')}
-
-        <div class="footer">
-            <p>Want to add or remove newsletter sources?<br>
-            <a href="https://github.com/UK7PriceIsRight/Daily-Mail">Edit your sources on GitHub</a> or update the NEWSLETTER_SOURCES list in extract_newsletters.py</p>
-        </div>
-    </div>
+<body style="margin:0;padding:0;font-family:Georgia,serif;line-height:1.6;color:#333;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9f9;">
+<tr>
+<td align="center" style="padding:20px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background-color:white;border-radius:8px;max-width:600px;">
+<tr>
+<td style="padding:30px;">
+<h1 style="color:#1a1a1a;border-bottom:3px solid #0066cc;padding-bottom:10px;margin:0 0 20px 0;font-size:28px;">Daily Newsletter Summary</h1>
+<p style="color:#888;font-style:italic;margin:0 0 20px 0;">{today}</p>
+<div style="background-color:#f0f0f0;padding:15px;border-radius:5px;margin:20px 0;font-size:0.9em;color:#666;">
+<strong>Sources:</strong> {sources_list}
+</div>
+<div style="color:#333;line-height:1.6;">
+{formatted_content}
+</div>
+<div style="margin-top:40px;padding-top:20px;border-top:1px solid #ddd;font-size:0.85em;color:#666;text-align:center;">
+<p>Want to add or remove newsletter sources?<br>
+<a href="https://github.com/UK7PriceIsRight/Daily-Mail" style="color:#0066cc;text-decoration:none;">Edit your sources on GitHub</a> or update the NEWSLETTER_SOURCES list in extract_newsletters.py</p>
+</div>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
 </body>
-</html>
-"""
+</html>"""
 
     return html
 
