@@ -273,7 +273,7 @@ Here are the newsletters:
 
     # Call Claude API
     message = client.messages.create(
-        model="claude-3-sonnet-20240229",
+        model="claude-3-haiku-20240307",
         max_tokens=3000,
         messages=[
             {"role": "user", "content": prompt}
