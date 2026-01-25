@@ -171,7 +171,7 @@ def extract_sender_domain(from_header):
     return "unknown"
 
 
-def send_email(service, to_email, subject, body_html):
+def send_email(service, to_email, subject, body_html, body_text=""):
     """
     Send an HTML email using the Gmail API.
 
@@ -180,16 +180,26 @@ def send_email(service, to_email, subject, body_html):
         to_email (str): Recipient email address
         subject (str): Email subject
         body_html (str): Email body in HTML format
+        body_text (str): Plain text version (optional)
 
     Returns:
         dict: Sent message details
     """
     message = MIMEMultipart('alternative')
     message['to'] = to_email
+    message['from'] = 'me'
     message['subject'] = subject
 
-    # Create HTML part
-    html_part = MIMEText(body_html, 'html')
+    # Create plain text version if not provided
+    if not body_text:
+        body_text = "Please view this email in an HTML-compatible email client."
+
+    # Attach parts in order: plain text first, then HTML
+    # Email clients display the last alternative they can handle
+    text_part = MIMEText(body_text, 'plain', 'utf-8')
+    html_part = MIMEText(body_html, 'html', 'utf-8')
+
+    message.attach(text_part)
     message.attach(html_part)
 
     # Encode the message
