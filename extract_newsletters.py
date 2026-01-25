@@ -326,6 +326,21 @@ Please provide ONLY the summary content without any HTML tags or formatting - I 
         li {{
             margin-bottom: 8px;
         }}
+        .footer {{
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 0.85em;
+            color: #666;
+            text-align: center;
+        }}
+        .footer a {{
+            color: #0066cc;
+            text-decoration: none;
+        }}
+        .footer a:hover {{
+            text-decoration: underline;
+        }}
     </style>
 </head>
 <body>
@@ -338,6 +353,11 @@ Please provide ONLY the summary content without any HTML tags or formatting - I 
         </div>
 
         {summary_content.replace('\n', '<br>\n')}
+
+        <div class="footer">
+            <p>Want to add or remove newsletter sources?<br>
+            <a href="https://github.com/UK7PriceIsRight/Daily-Mail">Edit your sources on GitHub</a> or update the NEWSLETTER_SOURCES list in extract_newsletters.py</p>
+        </div>
     </div>
 </body>
 </html>
