@@ -203,38 +203,39 @@ def strip_html(html_content):
     return stripper.get_data()
 
 
-def send_email(service, to_email, subject, body_html, body_text=""):
+def send_email(service, to_email, subject, body_html):
     """
     Send an HTML email using the Gmail API.
+
+    Note: Gmail API requires BOTH plain text and HTML parts.
+    Sending HTML-only will cause Gmail to convert it to plain text.
 
     Args:
         service: Gmail API service instance
         to_email (str): Recipient email address
         subject (str): Email subject
         body_html (str): Email body in HTML format
-        body_text (str): Plain text version (optional)
 
     Returns:
         dict: Sent message details
     """
+    # Create multipart message with both text and HTML
     message = MIMEMultipart('alternative')
-    message['to'] = to_email
-    message['from'] = 'me'
-    message['subject'] = subject
+    message['To'] = to_email
+    message['Subject'] = subject
 
-    # Create plain text version if not provided
-    if not body_text:
-        body_text = "Please view this email in an HTML-compatible email client."
+    # Create plain text version by stripping HTML tags
+    plain_text = strip_html(body_html)
 
-    # Attach parts in order: plain text first, then HTML
-    # Email clients display the last alternative they can handle
-    text_part = MIMEText(body_text, 'plain', 'utf-8')
+    # Attach both versions - plain text first, then HTML
+    # Email clients will prefer the last (HTML) version
+    text_part = MIMEText(plain_text, 'plain', 'utf-8')
     html_part = MIMEText(body_html, 'html', 'utf-8')
 
     message.attach(text_part)
     message.attach(html_part)
 
-    # Encode the message
+    # Encode the message using as_bytes() for Python 3
     raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
 
     # Send the message
