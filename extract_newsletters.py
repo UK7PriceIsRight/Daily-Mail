@@ -259,11 +259,11 @@ def generate_newsletter_summary(newsletters_data):
         newsletters_text += f"Subject: {newsletter['subject']}\n\n"
         # Use BeautifulSoup to extract plain text from HTML
         plain_text = strip_html(newsletter['body'])
-        # Limit to 5000 characters per newsletter
-        newsletters_text += plain_text[:5000] + "\n"
+        # Increased limit for more comprehensive coverage
+        newsletters_text += plain_text[:10000] + "\n"
 
     # Create improved prompt for Claude
-    prompt = f"""You are summarizing daily newsletters from premium news sources. Create a well-organized, concise summary that can be read in about 10 minutes.
+    prompt = f"""You are summarizing daily newsletters from premium news sources. Create a COMPREHENSIVE, well-organized summary that can be read in about 10 minutes. Prioritize depth and detail over brevity - include context, analysis, and key details that help the reader understand the full story.
 
 REQUIRED SECTIONS:
 - US POLITICS (always include, even if minimal coverage)
@@ -299,25 +299,29 @@ WORLD NEWS includes:
 - Global crises and humanitarian issues
 - International organizations (UN, NATO, EU, etc.)
 
-GUIDELINES:
+GUIDELINES FOR COMPREHENSIVE COVERAGE:
 - Start each section with an ALL CAPS header (e.g., "US POLITICS")
-- Within each section, write 2-4 concise paragraphs covering the key stories
-- Focus on what's newsworthy, interesting, and actionable
+- Within each section, write 3-6 substantive paragraphs covering the key stories
+- Include relevant context, background, and why the story matters
+- Include names, numbers, and specific details when relevant
+- Cover multiple stories per section when available
 - Use plain text - no markdown, no HTML, no bullet points
-- Maintain a professional but engaging tone
+- Maintain a professional, informative tone with analysis and insight
 - CRITICAL: Double-check each story's categorization before placing it
 - If a story spans multiple categories, put it in the MOST relevant one
 - Skip any section (except US POLITICS and UK NEWS) if there isn't enough substantive content
+
+TARGET: Aim for approximately 800-1200 words total (about 10 minutes reading time).
 
 Here are today's newsletters to summarize:
 
 {newsletters_text}"""
 
     # Call Claude API
-    # Using Haiku (fast and cheap) - upgrade to "claude-3-5-sonnet-20241022" for better accuracy
+    # Using Sonnet for comprehensive, high-quality summaries with better categorization
     message = client.messages.create(
-        model="claude-3-haiku-20240307",
-        max_tokens=4000,
+        model="claude-3-5-sonnet-20241022",
+        max_tokens=8000,
         messages=[
             {"role": "user", "content": prompt}
         ]
