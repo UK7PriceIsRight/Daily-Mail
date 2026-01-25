@@ -275,13 +275,38 @@ ADDITIONAL SECTIONS (only include if there's substantial content):
 - TECHNOLOGY & INNOVATION (tech industry, AI, startups)
 - CULTURE & SOCIETY (notable cultural moments, social trends)
 
+CATEGORIZATION RULES - FOLLOW CAREFULLY:
+US POLITICS includes:
+- Congress, Senate, House of Representatives
+- US President, Vice President, federal government
+- US federal policy, legislation, executive orders
+- US political campaigns and elections
+- State governors and US state politics
+- American political parties (Democrats, Republicans)
+
+UK NEWS includes:
+- UK Parliament, Westminster, MPs, Prime Minister
+- Labour party, Conservative party, Liberal Democrats, etc.
+- UK government policy and legislation
+- Scottish, Welsh, Northern Irish politics
+- UK royal family
+- Major UK domestic issues
+- Examples: Keir Starmer, Andy Burnham, Rishi Sunak are UK politicians
+
+WORLD NEWS includes:
+- International conflicts and diplomacy (unless US/UK is primary actor)
+- Foreign elections and political changes
+- Global crises and humanitarian issues
+- International organizations (UN, NATO, EU, etc.)
+
 GUIDELINES:
 - Start each section with an ALL CAPS header (e.g., "US POLITICS")
 - Within each section, write 2-4 concise paragraphs covering the key stories
 - Focus on what's newsworthy, interesting, and actionable
 - Use plain text - no markdown, no HTML, no bullet points
 - Maintain a professional but engaging tone
-- If a story spans multiple categories, put it in the most relevant one
+- CRITICAL: Double-check each story's categorization before placing it
+- If a story spans multiple categories, put it in the MOST relevant one
 - Skip any section (except US POLITICS and UK NEWS) if there isn't enough substantive content
 
 Here are today's newsletters to summarize:
@@ -289,9 +314,10 @@ Here are today's newsletters to summarize:
 {newsletters_text}"""
 
     # Call Claude API
+    # Using Haiku (fast and cheap) - upgrade to "claude-3-5-sonnet-20241022" for better accuracy
     message = client.messages.create(
         model="claude-3-haiku-20240307",
-        max_tokens=3000,
+        max_tokens=4000,
         messages=[
             {"role": "user", "content": prompt}
         ]
