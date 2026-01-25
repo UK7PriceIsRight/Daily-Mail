@@ -262,12 +262,29 @@ def generate_newsletter_summary(newsletters_data):
         # Limit to 5000 characters per newsletter
         newsletters_text += plain_text[:5000] + "\n"
 
-    # Create simple prompt for Claude
-    prompt = f"""Create a concise summary of these newsletters. Organize by US Politics and UK News sections.
+    # Create improved prompt for Claude
+    prompt = f"""You are summarizing daily newsletters from premium news sources. Create a well-organized, concise summary that can be read in about 10 minutes.
 
-Write in plain text with clear section headers. Keep it readable in about 10 minutes.
+REQUIRED SECTIONS:
+- US POLITICS (always include, even if minimal coverage)
+- UK NEWS (always include, even if minimal coverage)
 
-Here are the newsletters:
+ADDITIONAL SECTIONS (only include if there's substantial content):
+- WORLD NEWS (major international stories outside US/UK)
+- FINANCIAL MARKETS & ECONOMY (market moves, economic policy, business news)
+- TECHNOLOGY & INNOVATION (tech industry, AI, startups)
+- CULTURE & SOCIETY (notable cultural moments, social trends)
+
+GUIDELINES:
+- Start each section with an ALL CAPS header (e.g., "US POLITICS")
+- Within each section, write 2-4 concise paragraphs covering the key stories
+- Focus on what's newsworthy, interesting, and actionable
+- Use plain text - no markdown, no HTML, no bullet points
+- Maintain a professional but engaging tone
+- If a story spans multiple categories, put it in the most relevant one
+- Skip any section (except US POLITICS and UK NEWS) if there isn't enough substantive content
+
+Here are today's newsletters to summarize:
 
 {newsletters_text}"""
 
