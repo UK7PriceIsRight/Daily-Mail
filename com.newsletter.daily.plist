@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.newsletter.daily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/Warrenhall/.pyenv/shims/python3</string>
+        <string>/Users/Warrenhall/Daily-Mail/extract_newsletters.py</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>5</integer>
+        <key>Minute</key>
+        <integer>45</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/Warrenhall/Daily-Mail/newsletter.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/Warrenhall/Daily-Mail/newsletter_error.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/Warrenhall/.pyenv/shims:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>ANTHROPIC_API_KEY</key>
+        <string>REPLACE_WITH_YOUR_API_KEY</string>
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/Warrenhall/Daily-Mail</string>
+</dict>
+</plist>
