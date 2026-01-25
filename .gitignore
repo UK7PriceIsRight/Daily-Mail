@@ -9,6 +9,9 @@ token.json
 # Newsletter output directory
 newsletters/
 
+# Log files
+newsletter.log
+
 # Python
 __pycache__/
 *.py[cod]
