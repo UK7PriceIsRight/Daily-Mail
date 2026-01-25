@@ -23,11 +23,14 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
 # Newsletter sources to search for
 NEWSLETTER_SOURCES = [
+    'interactive.wsj.com'
     'pucknews.com',
-    'economist.com',
     'punchbowlnews.com',
+    'economist.com',
     'thetimes.co.uk',
     'newsletter.thetimes.com'
+    'axios.com',
+    'politico.com'
 ]
 
 
