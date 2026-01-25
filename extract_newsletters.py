@@ -322,9 +322,10 @@ Here are today's newsletters to synthesize:
 
     # Call Claude API
     # Using Haiku (only model available with current API key)
+    # Haiku max_tokens limit is 4096
     message = client.messages.create(
         model="claude-3-haiku-20240307",
-        max_tokens=10000,  # Increased for more comprehensive synthesis
+        max_tokens=4096,
         messages=[
             {"role": "user", "content": prompt}
         ]
