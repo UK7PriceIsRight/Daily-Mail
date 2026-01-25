@@ -434,6 +434,12 @@ def main():
             try:
                 html_summary = generate_newsletter_summary(newsletters_data)
 
+                # Save generated HTML to file for debugging
+                debug_file = newsletters_dir / 'debug_email.html'
+                with open(debug_file, 'w', encoding='utf-8') as f:
+                    f.write(html_summary)
+                print(f"Debug: Saved generated HTML to {debug_file}")
+
                 print("Sending summary email...")
                 today = datetime.now().strftime('%Y-%m-%d')
                 email_subject = f"Daily Newsletters - {today}"
