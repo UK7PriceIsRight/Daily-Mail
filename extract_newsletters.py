@@ -38,7 +38,8 @@ NEWSLETTER_SOURCES = [
     'pucknews.com',
     'economist.com',
     'punchbowlnews.com',
-    'thetimes.co.uk'
+    'thetimes.co.uk',
+    'times.com'
 ]
 
 
