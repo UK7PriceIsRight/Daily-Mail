@@ -22,9 +22,23 @@ const path = fm.joinPath(fm.documentsDirectory(), "weight.json");
 const input = args.shortcutParameter;
 
 if (input == null) {
-  Script.setShortcutOutput("Error: no input received");
+  // Running directly in Scriptable (not from a Shortcut) — show status
+  if (fm.fileExists(path)) {
+    const existing = JSON.parse(fm.readString(path));
+    const alert = new Alert();
+    alert.title = "SaveWeight";
+    alert.message = "Last saved: " + existing.weight.toFixed(1) + " " + existing.unit + "\n" + existing.date + "\n\nThis script is meant to be run from the Export Weight shortcut, not directly.";
+    alert.addAction("OK");
+    await alert.present();
+  } else {
+    const alert = new Alert();
+    alert.title = "SaveWeight";
+    alert.message = "No weight.json found yet.\n\nRun this script from the Export Weight shortcut (not directly). The shortcut passes your Health weight data as input.";
+    alert.addAction("OK");
+    await alert.present();
+  }
   Script.complete();
-  throw new Error("No input from Shortcut");
+  return;
 }
 
 // Parse the weight value — Shortcuts may pass a number, string, or dict
