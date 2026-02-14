@@ -46,8 +46,8 @@ Replace `"lbs"` with `"kg"` if your Health app stores weight in kilograms.
 
 ### Action 5: Save File
 - **Save** the Text from step 4
-- **Destination:** iCloud Drive
-- **Path:** `Shortcuts/HealthWeight/weight.json`
+- **Destination:** On My iPhone → **Scriptable** folder
+- **Filename:** `weight.json`
 - **Overwrite if exists:** ON
 
 Run the shortcut once manually to create the folder and confirm it works.

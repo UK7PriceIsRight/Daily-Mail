@@ -17,8 +17,7 @@
  *    c) "Text" — build a JSON string:
  *         {"weight": [Value], "unit": "lbs", "date": "[Start Date]"}
  *    d) "Save File" — save the text to:
- *         Shortcuts/HealthWeight/weight.json
- *       (iCloud Drive, create folder if needed)
+ *         On My iPhone > Scriptable > weight.json
  *
  * 2. Create a Shortcuts Automation:
  *    Trigger: Time of Day (e.g. every hour, or several times/day)
@@ -36,23 +35,16 @@ const KG_TO_LBS = 2.20462;
 const LBS_TO_KG = 0.453592;
 
 // Path to the JSON file written by the Apple Shortcut.
-// Default: iCloud Drive > Shortcuts > HealthWeight > weight.json
+// Default: On My iPhone > Scriptable > weight.json
 const DATA_FILENAME = "weight.json";
-const SHORTCUT_FOLDER = "HealthWeight";
 
 async function loadWeightData() {
-  const fm = FileManager.iCloud();
-  const shortcutsDir = fm.joinPath(fm.documentsDirectory(), "../Shortcuts");
-  const dataDir = fm.joinPath(shortcutsDir, SHORTCUT_FOLDER);
-  const filePath = fm.joinPath(dataDir, DATA_FILENAME);
+  // Use local Scriptable documents folder (On My iPhone > Scriptable)
+  const fm = FileManager.local();
+  const filePath = fm.joinPath(fm.documentsDirectory(), DATA_FILENAME);
 
   if (!fm.fileExists(filePath)) {
     return null;
-  }
-
-  // Ensure iCloud file is downloaded locally
-  if (!fm.isFileDownloaded(filePath)) {
-    await fm.downloadFileFromiCloud(filePath);
   }
 
   const raw = fm.readString(filePath);
