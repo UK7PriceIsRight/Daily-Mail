@@ -15,7 +15,7 @@
  *       Order: Latest First, Limit: 1
  *    b) "Get Details of Health Sample" — get Value and Start Date
  *    c) "Text" — build a JSON string:
- *         {"weight": [Value], "unit": "kg", "date": "[Start Date]"}
+ *         {"weight": [Value], "unit": "lbs", "date": "[Start Date]"}
  *    d) "Save File" — save the text to:
  *         Shortcuts/HealthWeight/weight.json
  *       (iCloud Drive, create folder if needed)
@@ -31,7 +31,7 @@
  * The shortcut should export in the unit your Health app uses.
  */
 
-const PREFERRED_UNIT = "kg"; // "kg" or "lbs"
+const PREFERRED_UNIT = "lbs"; // "kg" or "lbs"
 const KG_TO_LBS = 2.20462;
 const LBS_TO_KG = 0.453592;
 

@@ -39,10 +39,10 @@ Create a Text action with exactly this content (use the magic variable
 tokens for Value and Start Date):
 
 ```
-{"weight": [Value], "unit": "kg", "date": "[Start Date]"}
+{"weight": [Value], "unit": "lbs", "date": "[Start Date]"}
 ```
 
-Replace `"kg"` with `"lbs"` if your Health app stores weight in pounds.
+Replace `"lbs"` with `"kg"` if your Health app stores weight in kilograms.
 
 ### Action 5: Save File
 - **Save** the Text from step 4
