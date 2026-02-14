@@ -39,25 +39,37 @@ const LBS_TO_KG = 0.453592;
 const DATA_FILENAME = "weight.json";
 
 async function loadWeightData() {
-  // Use local Scriptable documents folder (On My iPhone > Scriptable)
-  const fm = FileManager.local();
-  const filePath = fm.joinPath(fm.documentsDirectory(), DATA_FILENAME);
-
-  if (!fm.fileExists(filePath)) {
-    return null;
-  }
-
-  const raw = fm.readString(filePath);
-  if (!raw || raw.trim().length === 0) {
-    return null;
-  }
-
+  // Try iCloud first (most common), then fall back to local
+  const managers = [];
   try {
-    return JSON.parse(raw);
+    const iCloud = FileManager.iCloud();
+    managers.push(iCloud);
   } catch (e) {
-    console.error("Failed to parse weight data: " + e.message);
-    return null;
+    // iCloud not available
   }
+  managers.push(FileManager.local());
+
+  for (const fm of managers) {
+    const filePath = fm.joinPath(fm.documentsDirectory(), DATA_FILENAME);
+
+    if (!fm.fileExists(filePath)) continue;
+
+    // If iCloud file, ensure it's downloaded
+    if (fm !== FileManager.local() && !fm.isFileDownloaded(filePath)) {
+      await fm.downloadFileFromiCloud(filePath);
+    }
+
+    const raw = fm.readString(filePath);
+    if (!raw || raw.trim().length === 0) continue;
+
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      console.error("Failed to parse weight data: " + e.message);
+    }
+  }
+
+  return null;
 }
 
 function convertWeight(value, fromUnit, toUnit) {
