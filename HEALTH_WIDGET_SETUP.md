@@ -1,18 +1,33 @@
 # Health Weight Widget — Setup Guide
 
 Scriptable does **not** have direct HealthKit access. This solution uses an
-Apple Shortcut to read your weight from the Health app and save it to a JSON
-file that the Scriptable widget reads.
+Apple Shortcut to read your weight from the Health app and pass it to a small
+Scriptable helper script (`SaveWeight.js`) that writes the JSON file the
+widget reads.
 
 ## Architecture
 
 ```
-Apple Health ──▶ Shortcut (reads weight) ──▶ JSON file ──▶ Scriptable widget
+Apple Health ──▶ Shortcut ──▶ SaveWeight.js (writes weight.json) ──▶ Widget
 ```
 
 ---
 
-## Step 1 — Create the Apple Shortcut
+## Step 1 — Add Scripts to Scriptable
+
+Copy **both** scripts into the Scriptable app:
+
+1. **SaveWeight.js** — the helper that receives weight from the Shortcut and
+   writes `weight.json`.
+2. **HealthWeightWidget.js** — the widget that reads `weight.json` and
+   displays your weight.
+
+For each script: open Scriptable → tap **+** → paste the full contents →
+name it exactly `SaveWeight` and `HealthWeightWidget`.
+
+---
+
+## Step 2 — Create the Apple Shortcut
 
 Open the **Shortcuts** app and create a new shortcut named
 **"Export Weight"** with the following actions in order:
@@ -26,35 +41,23 @@ Open the **Shortcuts** app and create a new shortcut named
 When you add this action, iOS will prompt you to grant the shortcut access
 to read Weight data from Health. Approve it.
 
-### Action 2: Get Details of Health Sample
-- Get **Value** of *Health Samples* (from step 1)
-- Store or note this; it will be referenced as `Value`.
+### Action 2: Run Script
+- **App:** Scriptable
+- **Script:** SaveWeight
+- **Input:** tap "Input" → choose **Shortcut Input**, then tap the blue
+  "Shortcut Input" pill and change it to **Health Samples** (the result
+  from Action 1)
 
-### Action 3: Get Details of Health Sample (again)
-- Get **Start Date** of *Health Samples* (from step 1)
-- Store or note this; it will be referenced as `Start Date`.
+That's it — only two actions. No Text action, no Save File action.
+Scriptable handles writing the JSON file itself, which avoids the problems
+with Shortcuts variable substitution and file-saving permissions.
 
-### Action 4: Text
-Create a Text action with exactly this content (use the magic variable
-tokens for Value and Start Date):
-
-```
-{"weight": [Value], "unit": "lbs", "date": "[Start Date]"}
-```
-
-Replace `"lbs"` with `"kg"` if your Health app stores weight in kilograms.
-
-### Action 5: Save File
-- **Save** the Text from step 4
-- **Destination:** On My iPhone → **Scriptable** folder
-- **Filename:** `weight.json`
-- **Overwrite if exists:** ON
-
-Run the shortcut once manually to create the folder and confirm it works.
+Run the shortcut once manually. You should see a confirmation like
+"Saved: 186.7 lbs" as the output.
 
 ---
 
-## Step 2 — Automate the Shortcut
+## Step 3 — Automate the Shortcut
 
 In the **Shortcuts** app, go to the **Automation** tab:
 
@@ -65,15 +68,6 @@ In the **Shortcuts** app, go to the **Automation** tab:
 5. Turn **off** "Ask Before Running" so it runs silently
 
 This keeps the JSON file up to date automatically.
-
----
-
-## Step 3 — Install the Scriptable Widget
-
-1. Copy `HealthWeightWidget.js` into the **Scriptable** app:
-   - Open Scriptable → tap **+** → paste the full script
-   - Or place the `.js` file in the `Scriptable` folder on iCloud Drive
-2. Run the script once inside Scriptable to verify it shows your weight.
 
 ---
 
@@ -94,17 +88,29 @@ In `HealthWeightWidget.js`, you can change:
 
 | Variable | Default | Description |
 |---|---|---|
-| `PREFERRED_UNIT` | `"kg"` | Display unit: `"kg"` or `"lbs"` (auto-converts) |
+| `PREFERRED_UNIT` | `"lbs"` | Display unit: `"kg"` or `"lbs"` (auto-converts) |
+
+In `SaveWeight.js`, you can change:
+
+| Variable | Default | Description |
+|---|---|---|
+| `unit` (in the data object) | `"lbs"` | Unit your Health app stores weight in |
 
 ---
 
 ## Troubleshooting
 
 ### Widget shows "No data found"
-- Run the "Export Weight" shortcut manually and check that
-  `iCloud Drive/Shortcuts/HealthWeight/weight.json` exists and contains
-  valid JSON.
-- Make sure the Scriptable app has iCloud Drive access enabled.
+- Run the "Export Weight" shortcut manually and check the output message.
+- Open Scriptable → tap SaveWeight → Run to verify `weight.json` exists.
+
+### Shortcut shows "Error: no input received"
+- Make sure Action 2 has its **Input** set to **Health Samples** (the
+  output of Action 1), not "Ask Each Time" or blank.
+
+### Shortcut shows "Error: could not parse weight"
+- This means the Health Sample value couldn't be read as a number.
+- Verify you have at least one weight entry in the Health app.
 
 ### Shortcut fails to read Health data
 - Go to **Settings → Health → Data Access & Devices** and confirm your
@@ -112,10 +118,10 @@ In `HealthWeightWidget.js`, you can change:
 - Verify you have at least one weight entry in the Health app.
 
 ### Weight shows wrong number
-- Check that the `"unit"` field in the JSON matches what your Health app
-  actually uses (`"kg"` vs `"lbs"`).
+- Check that the `unit` field in `SaveWeight.js` matches what your Health
+  app actually uses (`"kg"` vs `"lbs"`).
 - The widget auto-converts between units, so set `PREFERRED_UNIT` in the
-  script to your desired display unit.
+  widget script to your desired display unit.
 
 ### Widget not updating
 - Widgets refresh on iOS's schedule (roughly every 15–30 minutes).

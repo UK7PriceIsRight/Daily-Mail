@@ -10,20 +10,17 @@
  * written by an Apple Shortcut. See SETUP below.
  *
  * SETUP:
- * 1. Create an Apple Shortcut with these actions:
+ * 1. Add SaveWeight.js to Scriptable (the helper that writes weight.json).
+ * 2. Create an Apple Shortcut with these actions:
  *    a) "Find Health Samples" — Type: Weight, Sort by: Start Date,
  *       Order: Latest First, Limit: 1
- *    b) "Get Details of Health Sample" — get Value and Start Date
- *    c) "Text" — build a JSON string:
- *         {"weight": [Value], "unit": "lbs", "date": "[Start Date]"}
- *    d) "Save File" — save the text to:
- *         On My iPhone > Scriptable > weight.json
+ *    b) "Run Script" — Script: SaveWeight, Input: Health Samples
  *
- * 2. Create a Shortcuts Automation:
+ * 3. Create a Shortcuts Automation:
  *    Trigger: Time of Day (e.g. every hour, or several times/day)
- *    Action: Run the shortcut from step 1
+ *    Action: Run the shortcut from step 2
  *
- * 3. Place this script in Scriptable and add it as a small widget.
+ * 4. Place this script in Scriptable and add it as a small widget.
  *
  * UNIT CONFIGURATION:
  * Change PREFERRED_UNIT below to "lbs" if you want pounds.
