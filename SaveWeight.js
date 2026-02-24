@@ -19,26 +19,42 @@ const fm = FileManager.local();
 const path = fm.joinPath(fm.documentsDirectory(), "weight.json");
 
 // Get the weight value passed from the Shortcut
-const input = args.shortcutParameter;
+const rawInput = args.shortcutParameter;
 
-if (input == null) {
-  // Running directly in Scriptable (not from a Shortcut) — show status
-  if (fm.fileExists(path)) {
-    const existing = JSON.parse(fm.readString(path));
-    const alert = new Alert();
-    alert.title = "SaveWeight";
-    alert.message = "Last saved: " + existing.weight.toFixed(1) + " " + existing.unit + "\n" + existing.date + "\n\nThis script is meant to be run from the Export Weight shortcut, not directly.";
-    alert.addAction("OK");
-    await alert.present();
+if (rawInput == null) {
+  if (config.runsInApp) {
+    // Running directly in Scriptable — show status alert
+    if (fm.fileExists(path)) {
+      const existing = JSON.parse(fm.readString(path));
+      const alert = new Alert();
+      alert.title = "SaveWeight";
+      alert.message = "Last saved: " + existing.weight.toFixed(1) + " " + existing.unit + "\n" + existing.date + "\n\nThis script is meant to be run from the Export Weight shortcut, not directly.";
+      alert.addAction("OK");
+      await alert.present();
+    } else {
+      const alert = new Alert();
+      alert.title = "SaveWeight";
+      alert.message = "No weight.json found yet.\n\nRun this script from the Export Weight shortcut (not directly). The shortcut passes your Health weight data as input.";
+      alert.addAction("OK");
+      await alert.present();
+    }
   } else {
-    const alert = new Alert();
-    alert.title = "SaveWeight";
-    alert.message = "No weight.json found yet.\n\nRun this script from the Export Weight shortcut (not directly). The shortcut passes your Health weight data as input.";
-    alert.addAction("OK");
-    await alert.present();
+    // Running from Shortcut but no input received — return error message
+    Script.setShortcutOutput("Error: No weight data received. Make sure the Shortcut passes Health Samples as input to this script.");
   }
   Script.complete();
   return;
+}
+
+// Unwrap array input — Shortcuts passes Health Samples as an array
+let input = rawInput;
+if (Array.isArray(rawInput)) {
+  if (rawInput.length === 0) {
+    Script.setShortcutOutput("Error: Health Samples returned empty. Make sure you have weight data in the Health app.");
+    Script.complete();
+    return;
+  }
+  input = rawInput[0];
 }
 
 // Parse the weight value — Shortcuts may pass a number, string, or dict
@@ -48,11 +64,16 @@ if (typeof input === "number") {
   weightValue = input;
 } else if (typeof input === "string") {
   weightValue = parseFloat(input);
-} else if (typeof input === "object" && input.value != null) {
-  // Health Sample dict sometimes has a .value property
-  weightValue = parseFloat(input.value);
-} else if (typeof input === "object" && input.weight != null) {
-  weightValue = parseFloat(input.weight);
+} else if (typeof input === "object" && input !== null) {
+  // Health Sample dict — try common property names
+  const v = input.value ?? input.weight ?? input.qty ?? input.quantity;
+  if (v != null) {
+    weightValue = parseFloat(v);
+  } else {
+    // Last resort: stringify and try to extract a number
+    const match = JSON.stringify(input).match(/([\d]+\.[\d]+|[\d]+)/);
+    weightValue = match ? parseFloat(match[1]) : NaN;
+  }
 } else {
   // Try converting whatever we got
   weightValue = parseFloat(String(input));
