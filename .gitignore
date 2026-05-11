@@ -2,6 +2,9 @@
 credentials.json
 token.json
 
+# Environment variables - NEVER commit these!
+.env
+
 # Newsletter output directory
 newsletters/
 

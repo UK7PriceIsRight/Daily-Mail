@@ -97,3 +97,89 @@ See [OAUTH_SETUP.md](OAUTH_SETUP.md) for common issues and solutions.
 ## License
 
 This project is for personal use.
+
+---
+
+# Lawn Watering Advisor
+
+Automated morning watering advisor for the 85 m² fine fescue lawn at 41 Chiswick Lane, West London. Every morning at 7 am it fetches the last 7 days of FAO-56 evapotranspiration (ET₀) and rainfall data from [Open-Meteo](https://open-meteo.com) (free, no API key required), calculates the cumulative water deficit, and sends a plain-text email alert when action is needed.
+
+## Watering thresholds
+
+| Deficit (mm) | Action |
+|---|---|
+| < 5 | No email — lawn is fine |
+| 5–12 | Email: water 20 min with hose and sprinkler |
+| 12–22 | Email: water 35 min today |
+| > 22 | Email: water 50 min, urgent |
+
+## Setup
+
+### 1. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Create a Gmail App Password
+
+> App Passwords let a script send email through your Gmail account without using your main password or OAuth flow. They require 2-Step Verification to be enabled on the account.
+
+1. Go to your Google Account → **Security** → **2-Step Verification** (enable if not already on).
+2. Back on the Security page, scroll to **App passwords** (or visit <https://myaccount.google.com/apppasswords>).
+3. Choose app: **Mail**, device: **Other** (type "Lawn Advisor"), click **Generate**.
+4. Copy the 16-character password shown — you won't see it again.
+
+### 3. Configure credentials
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and fill in your Gmail address and the App Password you just generated:
+
+```
+GMAIL_USER=your.gmail.address@gmail.com
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+```
+
+`.env` is excluded from git by `.gitignore` — never commit it.
+
+### 4. Test manually
+
+```bash
+python main.py --test
+```
+
+This fetches live data, calculates the deficit, and prints what the email *would* say — without actually sending anything. No credentials needed for `--test` mode when deficit is below threshold (no email path is reached).
+
+### 5. Schedule with cron (runs every day at 7 am)
+
+```bash
+crontab -e
+```
+
+Add this line (replace `/path/to/Daily-Mail` with the actual path):
+
+```
+0 7 * * * cd /path/to/Daily-Mail && /usr/bin/python3 main.py
+```
+
+To find the correct Python path: `which python3`
+
+### 6. Check the log
+
+Each run appends a line to `lawn_watering.log` in the project directory:
+
+```
+2026-05-11 07:00:01 INFO date=2026-05-11 deficit=8.3mm action=EMAIL_SENT label=Water 20 min
+2026-05-12 07:00:01 INFO date=2026-05-12 deficit=0.0mm action=NO_ACTION label=No Action Needed
+```
+
+## Garden context
+
+- **Location**: 41 Chiswick Lane, Chiswick, West London (lat 51.4927, lon −0.2678)
+- **Lawn**: ~85 m² fine fescue blend (70%+ creeping red / chewing's / hard fescue)
+- **Soil**: clay-loam
+- **Irrigation**: automated system covers beds only — manual hose/sprinkler needed for lawn
+- **Stress onset**: fine fescues begin showing drought stress at ~15 mm cumulative deficit
