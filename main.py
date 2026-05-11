@@ -16,7 +16,7 @@ load_dotenv()
 
 LAT = 51.4927
 LON = -0.2678
-RECIPIENT = "uk7priceisright@gmail.com"
+RECIPIENTS = ["uk7priceisright@gmail.com", "uk7silvergirl@gmail.com"]
 LOG_FILE = "lawn_watering.log"
 
 THRESHOLD_LOW = 5.0   # mm — no action below this
@@ -113,11 +113,11 @@ def send_email(subject: str, body: str) -> None:
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = subject
     msg["From"] = smtp_user
-    msg["To"] = RECIPIENT
+    msg["To"] = ", ".join(RECIPIENTS)
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(smtp_user, smtp_pass)
-        server.sendmail(smtp_user, RECIPIENT, msg.as_string())
+        server.sendmail(smtp_user, RECIPIENTS, msg.as_string())
 
 
 def run(test_mode: bool = False) -> None:

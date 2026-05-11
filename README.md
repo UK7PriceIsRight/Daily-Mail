@@ -162,7 +162,7 @@ crontab -e
 Add this line (replace `/path/to/Daily-Mail` with the actual path):
 
 ```
-0 7 * * * cd /path/to/Daily-Mail && /usr/bin/python3 main.py
+0 6 * * * cd /path/to/Daily-Mail && /usr/bin/python3 main.py
 ```
 
 To find the correct Python path: `which python3`
