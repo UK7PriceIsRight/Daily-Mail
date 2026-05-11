@@ -150,7 +150,7 @@ def run(test_mode: bool = False) -> None:
                 "date=%s deficit=%.1fmm action=EMAIL_SENT label=%s",
                 today_str, deficit, label,
             )
-            print(f"Email sent → {RECIPIENT}  |  deficit={deficit} mm  |  {label}")
+            print(f"Email sent → {', '.join(RECIPIENTS)}  |  deficit={deficit} mm  |  {label}")
         else:
             logger.info(
                 "date=%s deficit=%.1fmm action=NO_ACTION label=%s",
