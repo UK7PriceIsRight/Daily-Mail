@@ -183,3 +183,37 @@ Each run appends a line to `lawn_watering.log` in the project directory:
 - **Soil**: clay-loam
 - **Irrigation**: automated system covers beds only — manual hose/sprinkler needed for lawn
 - **Stress onset**: fine fescues begin showing drought stress at ~15 mm cumulative deficit
+
+## Replying to log manual watering (optional)
+
+You can reply to the morning email with how long you watered (e.g. `"watered 30 min"`, `"30"`, `"did 25 mins"`) or `"skip"` if you didn't. The next morning's run reads that reply, credits it against the deficit (at 15 L/min over 85 m² ≈ 0.18 mm/min), and confirms it at the top of that day's email.
+
+This feature needs read/modify access to your Gmail inbox (to find the reply and mark it read), in addition to the SMTP App Password already used for sending — sending is unchanged.
+
+### One-time setup
+
+1. You need the same `credentials.json` OAuth client used for `extract_newsletters.py`. If you don't have one yet, follow [OAUTH_SETUP.md](OAUTH_SETUP.md) — the same client works for both scripts.
+2. Run the bootstrap command once, interactively (not via cron):
+   ```bash
+   python3 main.py --authorize-gmail
+   ```
+3. A browser window opens — log in and approve access. This creates `watering_token.json`, which cron will reuse silently afterwards.
+
+If you skip this step, the watering advisor still works exactly as before — replies are just never picked up (a warning is logged, the deficit calculation is unaffected).
+
+### watering_log.json
+
+A small JSON file tracking each day's sent message/thread IDs and any manual watering logged:
+
+```json
+{
+  "2026-06-18": {
+    "message_id": "18e4f2a3b1c...",
+    "thread_id": "18e4f2a3b1c...",
+    "manual_watering_mm": 5.3,
+    "recommended_minutes": 35
+  }
+}
+```
+
+It's plain JSON — safe to open and hand-edit if you ever need to correct an entry.
