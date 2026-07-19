@@ -80,14 +80,25 @@ def save_watering_log(watering_log: dict) -> None:
 
 def fetch_weather_data() -> tuple[list[float], list[float], list[str]]:
     """Fetch ET0 and precipitation for the last 7 days from Open-Meteo."""
-    resp = requests.get(API_URL, timeout=30)
-    resp.raise_for_status()
-    daily = resp.json()["daily"]
-    return (
-        daily["et0_fao_evapotranspiration"],
-        daily["precipitation_sum"],
-        daily["time"],
-    )
+    attempts = 3
+    delay = 30  # seconds between retries
+    last_exc = None
+    for attempt in range(attempts):
+        try:
+            resp = requests.get(API_URL, timeout=30)
+            resp.raise_for_status()
+            daily = resp.json()["daily"]
+            return (
+                daily["et0_fao_evapotranspiration"],
+                daily["precipitation_sum"],
+                daily["time"],
+            )
+        except requests.RequestException as exc:
+            last_exc = exc
+            if attempt < attempts - 1:
+                logger.warning("Open-Meteo attempt %d failed: %s — retrying in %ds", attempt + 1, exc, delay)
+                time.sleep(delay)
+    raise last_exc
 
 
 def apply_manual_watering(dates: list[str], precip_values: list[float], watering_log: dict) -> list[float]:
